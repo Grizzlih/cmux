@@ -309,6 +309,17 @@ nonisolated enum SidebarSectionActionCatalog: ActionCatalogGroup {
                 surfaces: [.palette, .contextMenu],
                 surfacePlan: plan(cli: .exempt(.guiOnly), menus: [p(.sidebarBackground, .view, 140, folder: .options)])
             ),
+            // The user's custom sidebar (`local/customize`, Lawrence 2026-11-09: "make it easier to toggle the custom
+            // sidebar"): one press shows or hides it (the app's hidden flag, kept across relaunches); with no customize
+            // folder it writes the starter. The Options row reads Show or Hide Custom Sidebar, or Create Custom Sidebar.
+            ActionDescriptor(
+                id: "sidebar.custom.toggle", title: t("action.sidebar.custom.toggle", "Toggle Custom Sidebar"),
+                keywords: ["sidebar", "custom", "customize", "custom views", "my views", "section", "show", "hide", "switch", "starter"],
+                defaultShortcut: Shortcut("b", modifiers: [.control, .option, .command]),
+                category: .sidebar, symbol: "sidebar.squares.left",
+                surfaces: [.palette, .keyboard, .contextMenu], cliName: "sidebar toggle-custom",
+                surfacePlan: plan(menus: [p(.sidebarBackground, .view, 141, folder: .options)])
+            ),
             // Leo (2026-10-06): Group ▸ in the sidebar's menu picks how the
             // Projects list buckets its loose rows (`sidebar.groupBy`).
             ActionDescriptor(
