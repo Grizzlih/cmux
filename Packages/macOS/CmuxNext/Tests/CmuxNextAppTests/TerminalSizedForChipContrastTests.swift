@@ -90,3 +90,70 @@ import Testing
         #expect(ink.min < 0.4, "the darkest ink in Take over is \(ink.min): its title is not readable on the light chip")
     }
 }
+
+/// Scratch capture (not landed): the chip in the bottom-trailing corner of a pane card, in a light and
+/// a dark terminal theme, drawn 3x so the corners can be compared. One PNG at the repo root.
+@MainActor @Suite(.serialized, .closesItsWindows) struct TerminalSizedForChipShotCapture {
+    @Test func captureChipInPaneCorner() throws {
+        _ = NSApplication.shared
+        let pane = Metrics.floatingPanes ? Metrics.floatingPaneCornerRadius
+            : Metrics.mainPaneCornerRadius(windowCornerRadius: Metrics.standardWindowCornerRadius)
+        var shots: [NSImage] = []
+        for (bg, fg, look) in [(UInt32(0xFAFAFA), UInt32(0x222222), NSAppearance.Name.aqua), (0x1E1E1E, 0xD4D4D4, .darkAqua)] {
+            let scope = ThemeScope(level: .room)
+            scope.setOverride(try #require(ThemeSpec("Chip Shot")),
+                              input: ThemeInput(background: ThemeRGB(hex: bg), foreground: ThemeRGB(hex: fg)), animated: false)
+            let size = NSSize(width: 300, height: 64)
+            let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.appearance = NSAppearance(named: look)
+            let root = NSView(frame: NSRect(origin: .zero, size: size))
+            root.wantsLayer = true
+            root.layer?.backgroundColor = NSColor(white: 0.5, alpha: 1).cgColor
+            window.contentView = root
+            scope.root(root)
+            let card = NSView(frame: NSRect(x: size.width - 400, y: 0, width: 400, height: 200))
+            card.wantsLayer = true
+            card.layer?.cornerRadius = pane
+            card.layer?.cornerCurve = .continuous
+            card.layer?.backgroundColor = ThemeRGB(hex: bg).nsColor.cgColor
+            root.addSubview(card)
+            let chip = TerminalSizedForChip()
+            root.addSubview(chip)
+            chip.show(TerminalSizedFor(deviceName: "Maya's iPhone", deviceKind: "iphone", sameDevice: false,
+                                       grid: TerminalGridSize(columns: 54, rows: 44)))
+            let fit = chip.fittingSize
+            let inset = Metrics.panelInset
+            chip.frame = NSRect(x: size.width - inset - fit.width, y: inset, width: fit.width, height: fit.height)
+            window.orderFrontRegardless()
+            root.layoutSubtreeIfNeeded()
+            chip.layoutSubtreeIfNeeded()
+            CATransaction.flush()
+            let rep = try #require(root.bitmapImageRepForCachingDisplay(in: root.bounds))
+            root.cacheDisplay(in: root.bounds, to: rep)
+            let image = NSImage(size: size)
+            image.addRepresentation(rep)
+            shots.append(image)
+            window.close()
+        }
+        let zoom: CGFloat = 3
+        let w = Int(300 * zoom), h = Int(64 * zoom)
+        let out = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w * 2 + 24, pixelsHigh: h, bitsPerSample: 8,
+                                                samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+                                                bytesPerRow: 0, bitsPerPixel: 0))
+        NSGraphicsContext.saveGraphicsState()
+        let ctx = NSGraphicsContext(bitmapImageRep: out)
+        NSGraphicsContext.current = ctx
+        ctx?.imageInterpolation = .none
+        NSColor.white.setFill()
+        NSRect(x: 0, y: 0, width: w * 2 + 24, height: h).fill()
+        for (i, shot) in shots.enumerated() {
+            shot.draw(in: NSRect(x: (w + 24) * i, y: 0, width: w, height: h))
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        try #require(out.representation(using: .png, properties: [:])).write(to: root.appendingPathComponent("chip-shot.png"))
+        print("chip-shot: window \(Metrics.standardWindowCornerRadius) pane \(pane) inset \(Metrics.panelInset)")
+    }
+}
