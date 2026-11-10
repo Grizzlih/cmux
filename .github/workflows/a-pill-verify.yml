@@ -19,3 +19,13 @@ jobs:
           swift test --package-path Packages/Shared/CmuxMessagesLab \
             --filter 'HomeGroupColumnAlignmentTests|HomeTurnProgressTests|HomeGroupSenderTests|HomeRunTailTests|HomeAgentPillRowTests|HomeNoticeShimmerTests|HomeTypingGapTests|HomeGroupReplyQuoteTests|HomeAgentMessageFoldTests' 2>&1 | tail -150
           exit ${PIPESTATUS[0]}
+      - name: Capture the scene, light and dark (scratch)
+        if: always()
+        run: |
+          CAPTURE_DIR=$PWD/shots swift test --package-path Packages/Shared/CmuxMessagesLab --filter ScratchAlignmentCapture 2>&1 | tail -30
+          ls -la shots || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots-${{ github.ref_name == 'scratch/a-pill-verify-red' && 'before' || 'after' }}
+          path: shots/*.png
