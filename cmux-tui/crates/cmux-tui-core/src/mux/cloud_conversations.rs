@@ -12,6 +12,8 @@ pub(crate) struct CloudServices {
     conversations: OnceLock<CloudConversations>,
     /// `cloud-host-replica-v1` (server/cloud_host_replica.rs).
     host_replica: OnceLock<HostReplica>,
+    /// `cloud-spare-warm-v1` (server/cloud_spare_warm.rs).
+    spare_warm: OnceLock<Arc<dyn crate::server::cloud_spare_warm::SpareWarmService>>,
 }
 
 impl Mux {
@@ -31,6 +33,22 @@ impl Mux {
     /// The installed cloud link, if any.
     pub fn cloud_conversations(&self) -> Option<&CloudConversations> {
         self.cloud.conversations.get()
+    }
+
+    /// Installs the Cloud spare warm once (the binary with the Cloud transport and the start-chat
+    /// ledger does this at startup). A second install is refused and leaves the first in place.
+    pub fn install_spare_warm(
+        &self,
+        service: Arc<dyn crate::server::cloud_spare_warm::SpareWarmService>,
+    ) -> bool {
+        self.cloud.spare_warm.set(service).is_ok()
+    }
+
+    /// The installed Cloud spare warm, if any (server/cloud_spare_warm.rs).
+    pub(crate) fn spare_warm(
+        &self,
+    ) -> Option<Arc<dyn crate::server::cloud_spare_warm::SpareWarmService>> {
+        self.cloud.spare_warm.get().cloned()
     }
 
     /// The host replica publisher, if installed (server/cloud_host_replica.rs).

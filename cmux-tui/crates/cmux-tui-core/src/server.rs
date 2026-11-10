@@ -186,6 +186,7 @@ mod close_tabs_command;
 mod cloud_attachments;
 mod cloud_conversations;
 pub mod cloud_host_replica;
+pub mod cloud_spare_warm;
 mod conversation_attachments;
 mod conversation_live;
 mod conversation_resource;
@@ -1963,6 +1964,9 @@ enum Command {
     CloudSelfhostInfo(cloud_conversations::NoParams),
     /// The cloud environment editor; the signed-in person only.
     CloudEnvironment(cloud_conversations::EnvironmentParams),
+    /// `cloud-spare-warm` (`cloud-spare-warm-v1`): the app's Cloud intent; the daemon warms the
+    /// spare and copies the login (server/cloud_spare_warm.rs). The verified app only.
+    CloudSpareWarm(cloud_spare_warm::SpareWarmParams),
     CloudConversationSnapshot(cloud_conversations::SnapshotParams),
     CloudConversationHistory(cloud_conversations::HistoryParams),
     CloudConversationThread(cloud_conversations::ThreadParams),

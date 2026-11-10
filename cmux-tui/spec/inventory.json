@@ -632,6 +632,7 @@
       "cloud-requests-list",
       "cloud-selfhost-info",
       "cloud-environment",
+      "cloud-spare-warm",
       "cloud-conversation-snapshot",
       "cloud-conversation-history",
       "cloud-conversation-thread",

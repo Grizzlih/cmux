@@ -8128,6 +8128,37 @@ refusals preserve their code; invalid fields fail before an HTTP call. Neither
 this command nor its reads change focus. CLI/MCP use requires the person's own
 API authorization; this native forwarding command never grants it to agents.
 
+
+### cloud-spare-warm
+
+| Field | Value |
+| --- | --- |
+| name | `cloud-spare-warm` |
+| status | implemented |
+| since | protocol 12 additive extension; capability `cloud-spare-warm-v1` |
+
+The app's Cloud intent: it came to the front signed in, the composer picked
+Cloud, or a reserve's or a claim's answer named a machine (`claimed`). Only the
+verified native app may send it. The daemon does the rest in Rust on a cloud
+request worker: the spare warm's throttle and ledger (`spare-warm.json` in the
+start-chat state folder, the one `cmux link start-chat warm-spare` and
+`wait-copy` read), the platform's `POST /v1/cloud/spare/warm` (none for a
+claim), and, when the ledger hands out a copy, the headless Claude login copy
+onto that machine: the Release remote switch, the harness login decision
+(cmux-cloud-start-core `harness_login::decide`, headless), the guest's kind and
+the machine's own login, the Keychain read, the guest check, the write and the
+install. The answer is the ledger's (`{ok, machine?, team?, fresh, copy?}`),
+sent once it is written; the copy goes on on its own thread and reports its end
+to the same ledger (`finished`, or `abandoned` when the leased person changed).
+
+Fields: `platform` (the warm's origin), `api` (the cmux API the copy's machine
+routes and the Release switch call), `access_token` (the Stack session), `install_token`,
+`account` (the Stack user), and optionally `claimed`, `team` (the selected Stack
+team), `login_scopes` (the person's teams then `null` for personal), `dogfood`,
+`setting` (`cmux.cloud.passHarnessLogin`), `stored_choice` (the person's kept
+login choice) and `consent` (the one-time Release consent). Neither token is
+kept, logged or put in a URL.
+
 ### cloud-conversation-thread
 
 | Field | Value |
