@@ -7,7 +7,7 @@ jobs:
     runs-on: blacksmith-6vcpu-macos-26
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           sparse-checkout: |
             Packages/Shared
@@ -24,7 +24,7 @@ jobs:
         run: |
           CAPTURE_DIR=$PWD/shots swift test --package-path Packages/Shared/CmuxMessagesLab --filter ScratchAlignmentCapture 2>&1 | tail -30
           ls -la shots || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: shots-${{ github.ref_name == 'scratch/a-pill-verify-red' && 'before' || 'after' }}
