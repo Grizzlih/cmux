@@ -132,12 +132,13 @@ import Testing
     @Test func aTableCardsTextStartsOneContentInsetInsideTheCard() throws {
         let grid = HomeTableGrid(Self.words, available: 600)
         let p = try Self.pixels(grid)
-        // The first ink of the body rows (under the header and its rule), left to right.
+        // The first ink of the first body row's text band (clear of the rules over and under it), left to right.
         let top = Int(HomeTableGrid.pad + grid.heights[0]) + 3
+        let bottom = Int(HomeTableGrid.pad + grid.heights[0] + grid.heights[1]) - 3
         let background = (p.width / 2, 2)
         var first: Int?
-        for x in 0..<p.width where first == nil {
-            for y in top..<(p.height - Int(HomeTableGrid.pad)) where Self.differs(p, x, y, from: background) { first = x; break }
+        for x in 3..<p.width where first == nil {
+            for y in top..<bottom where Self.differs(p, x, y, from: background) { first = x; break }
         }
         let ink = CGFloat(try #require(first))
         // A glyph's side bearing is under 2 pt.
