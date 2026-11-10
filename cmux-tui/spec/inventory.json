@@ -633,6 +633,7 @@
       "cloud-selfhost-info",
       "cloud-environment",
       "cloud-spare-warm",
+      "cloud-start-chat-reservation",
       "cloud-conversation-snapshot",
       "cloud-conversation-history",
       "cloud-conversation-thread",

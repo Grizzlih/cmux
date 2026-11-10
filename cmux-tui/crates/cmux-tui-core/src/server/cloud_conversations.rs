@@ -600,6 +600,7 @@ pub(super) fn is_network(cmd: &Command) -> bool {
             | Command::CloudSelfhostInfo(_)
             | Command::CloudEnvironment(_)
             | Command::CloudSpareWarm(_)
+            | Command::CloudStartChatReservation(_)
             | Command::CloudConversationSnapshot(_)
             | Command::CloudConversationHistory(_)
             | Command::CloudConversationThread(_)
@@ -695,7 +696,7 @@ pub(super) fn start(
     // and request slot, and without them carries the local rows.
     let permit = if matches!(cmd, Command::HomeInbox(_)) {
         None
-    } else if matches!(cmd, Command::CloudSpareWarm(_)) {
+    } else if matches!(cmd, Command::CloudSpareWarm(_) | Command::CloudStartChatReservation(_)) {
         // The spare warm takes no lease or request slot: it carries its own tokens, runs one
         // bounded warm, and its login copy goes on on its own thread after the answer.
         if !is_app(mux, client) {

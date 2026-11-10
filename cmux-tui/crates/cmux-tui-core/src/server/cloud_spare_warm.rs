@@ -78,8 +78,32 @@ impl std::fmt::Debug for SpareWarmParams {
     }
 }
 
-/// The warm itself, which the binary that has the Cloud transport and the ledger installs.
+/// `cloud-start-chat-reservation` (`cloud-start-chat-reservation-v1`): the composer's reservation
+/// (`cloud.reserve`, `cloud.releaseReservation`), which the App ran as a child process on every
+/// compose. `request` is the page's object (`composeKey`, `environment`) with the app's `platform`.
+#[derive(Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct ReservationParams {
+    pub release: bool,
+    pub request: Value,
+    pub access_token: String,
+    pub install_token: String,
+}
+
+impl std::fmt::Debug for ReservationParams {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ReservationParams").field("release", &self.release).finish_non_exhaustive()
+    }
+}
+
+/// `identify` advertises it with [`CAPABILITY`].
+pub const RESERVATION_CAPABILITY: &str = "cloud-start-chat-reservation-v1";
+
+/// The warm and the reservation, which the binary that has the Cloud transport and the ledger installs.
 pub trait SpareWarmService: Send + Sync {
+    /// The platform's answer to a reservation or its release, as `cmux link start-chat reserve|release` prints it.
+    fn reservation(&self, params: ReservationParams) -> Value;
+
     /// Answers the ledger's answer once it is written, and starts the login copy it hands out (if
     /// any) on its own thread. `still` says whether the account the copy is for is still the
     /// daemon's leased person: false ends the copy as abandoned, so the next warm answers it again.
@@ -105,11 +129,22 @@ pub(super) fn handle(mux: &Mux, client: u64, params: SpareWarmParams) -> anyhow:
     Ok(service.warm(params, still))
 }
 
+/// `cloud-start-chat-reservation`, on a cloud request worker thread.
+pub(super) fn reservation(mux: &Mux, client: u64, params: ReservationParams) -> anyhow::Result<Value> {
+    if !is_app_client(mux, client) {
+        return Err(forbidden().into());
+    }
+    let Some(service) = mux.spare_warm() else {
+        return Err(CloudError::Unavailable("this daemon has no Cloud reservation".into()).into());
+    };
+    Ok(service.reservation(params))
+}
+
 /// The refusal for a connection that is not the verified app.
 pub(super) fn forbidden() -> CloudError {
     CloudError::Rejected {
         code: "forbidden".into(),
-        message: "cloud-spare-warm requires the verified cmux app connection".into(),
+        message: "cloud-spare-warm and cloud-start-chat-reservation require the verified cmux app connection".into(),
         retryable: false,
     }
 }

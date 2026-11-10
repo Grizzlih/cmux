@@ -8159,6 +8159,22 @@ team), `login_scopes` (the person's teams then `null` for personal), `dogfood`,
 login choice) and `consent` (the one-time Release consent). Neither token is
 kept, logged or put in a URL.
 
+
+### cloud-start-chat-reservation
+
+| Field | Value |
+| --- | --- |
+| name | `cloud-start-chat-reservation` |
+| status | implemented |
+| since | protocol 12 additive extension; capability `cloud-start-chat-reservation-v1` |
+
+The composer's machine reservation (`release: false`) or its release, which the
+app ran as a `cmux link start-chat reserve|release` child process on every
+compose. Only the verified native app may send it, on a cloud request worker.
+`request` is the page's `{composeKey, environment?}` with the app's `platform`;
+`access_token` is the Stack session and `install_token` names the team
+(`install_team`, the spare warm's). Answers exactly what the CLI verb prints.
+
 ### cloud-conversation-thread
 
 | Field | Value |

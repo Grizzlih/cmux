@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use cmux_tui_core::Mux;
-use cmux_tui_core::server::cloud_spare_warm::{SpareWarmParams, SpareWarmService};
+use cmux_tui_core::server::cloud_spare_warm::{ReservationParams, SpareWarmParams, SpareWarmService};
 use serde_json::Value;
 
 use super::{Request, answer, login_copy, now_ms, post};
@@ -23,6 +23,10 @@ pub(crate) fn install(mux: &Arc<Mux>) {
 }
 
 impl SpareWarmService for DaemonSpareWarm {
+    fn reservation(&self, params: ReservationParams) -> Value {
+        super::super::reservations::daemon(params.request, params.release, &params.access_token, &params.install_token)
+    }
+
     fn warm(&self, params: SpareWarmParams, still: Arc<dyn Fn(&str) -> bool + Send + Sync>) -> Value {
         let Some(ledger) = super::super::ledger::path() else {
             return super::refused("ledger_failed", "this Mac has no state folder for the spare warm");

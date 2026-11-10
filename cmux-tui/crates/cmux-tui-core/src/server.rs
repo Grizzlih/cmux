@@ -1967,6 +1967,9 @@ enum Command {
     /// `cloud-spare-warm` (`cloud-spare-warm-v1`): the app's Cloud intent; the daemon warms the
     /// spare and copies the login (server/cloud_spare_warm.rs). The verified app only.
     CloudSpareWarm(cloud_spare_warm::SpareWarmParams),
+    /// `cloud-start-chat-reservation` (`cloud-start-chat-reservation-v1`): the composer's reservation
+    /// or its release (server/cloud_spare_warm.rs). The verified app only.
+    CloudStartChatReservation(cloud_spare_warm::ReservationParams),
     CloudConversationSnapshot(cloud_conversations::SnapshotParams),
     CloudConversationHistory(cloud_conversations::HistoryParams),
     CloudConversationThread(cloud_conversations::ThreadParams),
