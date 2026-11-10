@@ -1,68 +1,67 @@
+# SCRATCH (a-crash-40144-bsmith, never lands): #40144 red/green on Blacksmith macOS while the owned fleet is down.
 name: Terminal hang diagnostics
 
 on:
-  pull_request:
-    # Exactly what the jobs below compile, test or read.
-    paths:
-      # phase-attribution
-      - Packages/Shared/CMUXMobileCore/**
-      # phase-attribution
-      - Packages/Shared/CmuxSentryTelemetry/**
-      - cmux.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
-      # phase-attribution
-      - scripts/select-ci-xcode.sh
-      - scripts/ci/xcode-pins.txt
-      - .xcode-version
-      # release-gate
-      - scripts/terminal-hang-release-gate.py
-      - tests/test_terminal_hang_release_gate.py
-      - .github/workflows/terminal-hang-diagnostics.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: terminal-hang-diagnostics-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-env:
-  # Temporary REST budget attribution: one gh-call line per GitHub API call (scripts/ci/api_call_log/env.sh).
-  BASH_ENV: ${GITHUB_WORKSPACE:-/nonexistent}/scripts/ci/api_call_log/env.sh
-
 jobs:
-  release-gate:
-    runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'blacksmith-4vcpu-ubuntu-2404' || fromJSON(vars.RUNNER_POOLS).linux }}
-    timeout-minutes: 5
+  watchdog-thunks:
+    name: "#40144 ${{ matrix.side }}"
+    runs-on: blacksmith-12vcpu-macos-26
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - side: red
+            ref: 1674afdc8af8742f0d7c61ec3baaa8fc3b2840f1
+            filter: "MainThreadWatchdogTests"
+          - side: green
+            ref: ee2606ff6f6ae850525f251efaac8a27553cceea
+            filter: "MainThreadWatchdogTests|MutexClosureLoadTests"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          ref: ${{ matrix.ref }}
           persist-credentials: false
-      - run: python3 tests/test_terminal_hang_release_gate.py
-
-  phase-attribution:
-    runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'macos-26' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'blacksmith-6vcpu-macos-15' || vars.CI_PR_POOL_OWNED == '1' && contains(fromJSON('["pull_request","push","schedule","workflow_dispatch"]'), github.event_name) && (github.run_attempt == 1 && (vars.CI_LIGHT_LANE_RUNNER || vars.CI_SIDE_LANE_RUNNER)) || github.event_name == 'pull_request' && (vars.MACOS_RUNNER_PR || fromJSON(vars.RUNNER_POOLS).macos_15) || vars.CI_PAID_MACOS_OVERFLOW == '1' && vars.MACOS_RUNNER_15 || fromJSON(vars.RUNNER_POOLS).macos_15) }}
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Select pinned Xcode
+          submodules: false
+          fetch-depth: 1
+      - name: Select Xcode
         run: ./scripts/select-ci-xcode.sh
-      - name: Verify phase ingress and serialization
-        run: swift test --package-path Packages/Shared/CMUXMobileCore --filter TerminalWorkIntervalTests
-      - name: Verify attribution and privacy with the package SDK pin
-        run: swift test --package-path Packages/Shared/CmuxSentryTelemetry --force-resolved-versions --filter 'TerminalWorkSentryContextTests|SentryEventScrubberTests|SeededSecretTests|TransportSentryReporterTests'
-      - name: Resolve the shipping SDK pin
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          app = json.loads(Path("cmux.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved").read_text())
-          path = Path("Packages/Shared/CmuxSentryTelemetry/Package.resolved")
-          package = json.loads(path.read_text())
-          package["pins"] = [next(pin for pin in app["pins"] if pin["identity"] == "sentry-cocoa")]
-          path.write_text(json.dumps(package, indent=2) + "\n")
-          PY
-      - name: Verify attribution and privacy with the shipping SDK pin
-        run: swift test --package-path Packages/Shared/CmuxSentryTelemetry --force-resolved-versions --filter 'TerminalWorkSentryContextTests|SentryEventScrubberTests|SeededSecretTests|TransportSentryReporterTests'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.4"
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24.22.1"
+      - name: Source key of the web bundles
+        id: web-bundle-key
+        run: echo "key=$(python3 scripts/cmux-next/web-bundle-key.py . --source)" >> "$GITHUB_OUTPUT"
+      - name: Restore the web bundles from R2
+        id: web-bundle-r2
+        uses: ./.github/actions/cache-restore
+        env:
+          CI_CACHE_R2_PUBLIC_URL: https://ci-cache-next.cmux.com
+          CI_CACHE_R2_NAMESPACE: any
+        with:
+          backend: r2
+          path: web-bundles-out
+          key: cmux-next-web-bundles-v1-${{ steps.web-bundle-key.outputs.key }}
+      - name: Install the restored web bundles
+        if: steps.web-bundle-r2.outputs.cache-hit == 'true'
+        run: scripts/cmux-next/build-web-bundles.sh --from web-bundles-out
+      - name: Build the web bundles
+        if: steps.web-bundle-r2.outputs.cache-hit != 'true'
+        run: scripts/cmux-next/build-web-bundles.sh
+      - name: Build package and tests
+        working-directory: Packages/macOS/CmuxNext
+        run: swift build --build-tests
+      - name: Run the suites
+        working-directory: Packages/macOS/CmuxNext
+        run: swift test --skip-build --filter '${{ matrix.filter }}' 2>&1 | tee "$RUNNER_TEMP/test.log"; exit ${PIPESTATUS[0]}
+      - name: Summary
+        if: always()
+        run: grep -E "Test run with|✘|stack depth grew|onStallStays|readingOnHang|loadingAClosure" "$RUNNER_TEMP/test.log" | tail -20 || true
