@@ -27,13 +27,13 @@ jobs:
         if: always()
         run: |
           set -o pipefail
-          CMUX_COLUMN_SHOTS="$RUNNER_TEMP/shots" swift test --skip-build --package-path Packages/Shared/CmuxMessagesLab --filter 'HomeChatColumnShots' 2>&1 | tail -30 || true
+          swift test --skip-build --package-path Packages/Shared/CmuxMessagesLab --filter 'HomeChatColumnCaptureTests' 2>&1 | tail -30 || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: column-shots
-          path: ${{ runner.temp }}/shots
-          if-no-files-found: ignore
+          path: Packages/Shared/CmuxMessagesLab/.build/home-chat-column-*.png
+          if-no-files-found: warn
       - name: Whole package (report only)
         if: always()
         continue-on-error: true
