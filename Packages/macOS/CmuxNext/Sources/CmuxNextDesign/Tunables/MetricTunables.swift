@@ -69,9 +69,11 @@ public nonisolated enum MetricTunables {
     // MARK: Tabs
 
     public static let tabStripHeight = MetricTunable.make("tabStripHeight", .tabs, "Tab strip height", help: "Height of a pane's tab strip.",
-                                                          compact: 28, comfortable: 36, tight: 26, key: .tabStripHeight)
+                                                          compact: 28, comfortable: 38, tight: 26, key: .tabStripHeight)
+    /// A tab pill: the sidebar's one-line row at every density level (``Metrics/chromeRowHeight``),
+    /// 22 under Compact tabs.
     public static let tabHeight = MetricTunable.make("tabHeight", .tabs, "Tab height", help: "Height of a tab inside the strip.",
-                                                     compact: 24, comfortable: 30, tight: 22)
+                                                     compact: 24, comfortable: 32, tight: 22)
     /// Fields and small controls (the strip's +, toolbar and editor fields): the default tab height,
     /// kept under Compact tabs (Leo 2026-10-12: the tab shrinks, the controls keep their size).
     public static let controlHeight = MetricTunable.make("controlHeight", .shape, "Control height", help: "Height of fields and small controls, and the tab strip's + button.",
