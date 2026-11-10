@@ -122,10 +122,17 @@ import Testing
         relaunch.end()
         #expect(FirstRunSetup(defaults: defaults).route(isFirstRun: false, replacedKeys: Self.replaced) == .cardOwns)
 
-        // No card ever started (an upgrade, or VoiceOver at the first run): the first-run windows run as before.
+        // An upgrade never gets an onboarding window (Lawrence msg 25536, "get rid of onboarding window"): the
+        // first-run steps count as seen, so nothing opens on this launch or any later one.
         let upgrade = try self.defaults()
-        #expect(FirstRunSetup(defaults: upgrade).route(isFirstRun: false, replacedKeys: Self.replaced) == .windows)
-        #expect(FirstRunSetup(defaults: try self.defaults()).route(isFirstRun: true, replacedKeys: Self.replaced, screenReader: true) == .windows)
+        #expect(FirstRunSetup(defaults: upgrade).route(isFirstRun: false, replacedKeys: Self.replaced) != .windows)
+        for key in [OnboardingWindowPresenter.agentsShownKey, OnboardingWindowPresenter.historyShownKey] {
+            #expect(upgrade.bool(forKey: key), "\(key) is left for a window to show")
+        }
+        // A first run whose channel showed the Agents window before gets the card too, never the windows.
+        let earlier = try self.defaults()
+        earlier.set(true, forKey: OnboardingWindowPresenter.agentsShownKey)
+        #expect(FirstRunSetup(defaults: earlier).route(isFirstRun: true, replacedKeys: Self.replaced) != .windows)
     }
 
     /// The command line row's install runs once: while it runs the row is "installing" and another click starts
@@ -303,13 +310,13 @@ import Testing
         #expect(FirstRunSetup(defaults: defaults).shows, "the next launch that does not skip shows it again")
     }
 
-    /// VoiceOver presses the Agents window's Chromium page but not the card's WebKit one (manaflow-ai/cmux#37809).
-    @Test func withVoiceOverAFirstRunShowsTheAgentsWindowNotTheCard() throws {
+    /// With VoiceOver on, a first run gets the sidebar card too: it is native AppKit, which VoiceOver presses
+    /// (the WebKit card it could not press, manaflow-ai/cmux#37809, is gone), so no onboarding window opens.
+    @Test func withVoiceOverAFirstRunGetsTheCardNotTheAgentsWindow() throws {
         let defaults = try defaults()
         let setup = FirstRunSetup(defaults: defaults)
-        #expect(!setup.begin(isFirstRun: true, replacedKeys: Self.replaced, screenReader: true))
-        #expect(!setup.shows)
-        for key in [OnboardingWindowPresenter.agentsShownKey] + Self.replaced { #expect(!defaults.bool(forKey: key), "\(key) still shows") }
+        #expect(setup.route(isFirstRun: true, replacedKeys: Self.replaced, screenReader: true) == .startCard)
+        #expect(setup.shows)
     }
 
     /// A press with no click or key behind it (VoiceOver's, in WebKit) is refused; with VoiceOver on, a row's
