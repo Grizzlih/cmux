@@ -1,0 +1,42 @@
+# Scratch: a-chat-align's proof run while the fleet controller is down. Never lands on feat-cmux-next.
+name: a-chat-align scratch
+on:
+  push:
+    branches: [a-chat-align-ci]
+permissions:
+  contents: read
+jobs:
+  home-chat-column:
+    runs-on: blacksmith-6vcpu-macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode
+        run: |
+          ls /Applications | grep -i xcode || true
+          xcodebuild -version
+          swift --version
+      - name: Build tests
+        run: swift build --build-tests --package-path Packages/Shared/CmuxMessagesLab 2>&1 | tail -80
+      - name: Column and card tests
+        run: |
+          set -o pipefail
+          swift test --skip-build --package-path Packages/Shared/CmuxMessagesLab \
+            --filter 'HomeChatColumnTests|HomeCompareLayoutTests|HomeTableCardTests|HomeTableCornerTests|HomeTablePicturesTests|HomePictureViewerTests|HomeGroupSenderTests|HomeChiefBubbleAvatarTests' 2>&1 | tail -150
+      - name: Shots
+        if: always()
+        run: |
+          set -o pipefail
+          CMUX_COLUMN_SHOTS="$RUNNER_TEMP/shots" swift test --skip-build --package-path Packages/Shared/CmuxMessagesLab --filter 'HomeChatColumnShots' 2>&1 | tail -30 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: column-shots
+          path: ${{ runner.temp }}/shots
+          if-no-files-found: ignore
+      - name: Whole package (report only)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          swift test --skip-build --package-path Packages/Shared/CmuxMessagesLab 2>&1 | grep -E "✘|error:|failed|Test run with|passed after" | tail -120
