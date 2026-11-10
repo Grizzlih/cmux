@@ -156,7 +156,7 @@ def main(argv: list[str]) -> int:
     if failures:
         print("check-no-swift-cli-spawn: Swift runs a child process or the cmux CLI where the baseline allows none.\n"
               "  Move the logic into Rust behind a daemon command (a DaemonRequest over the socket), as cloud-spare-warm did;\n"
-              "  see cmuxterm-hq docs/handbook/patterns/swift-spawns-the-cli.md.", file=sys.stderr)
+              "  see cmuxterm-hq docs/handbook/swift-spawns-the-cli.md.", file=sys.stderr)
         for failure in failures:
             print(f"  {failure}", file=sys.stderr)
         return 1
