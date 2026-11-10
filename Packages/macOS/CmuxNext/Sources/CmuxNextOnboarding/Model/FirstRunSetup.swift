@@ -48,13 +48,11 @@ public final class FirstRunSetup {
 
     /// At launch, after the classic migration: a first run starts the card and marks the windows it replaces
     /// (`replacedKeys`: their once flags) shown. True when the card started now. Never twice, and never on an
-    /// upgrade (`isFirstRun` false) or when the first-run Agents window already showed on this channel. With
-    /// VoiceOver on (`screenReader`) the windows show as before: VoiceOver can press the Agents window's
-    /// Chromium page, not the card's WebKit one (manaflow-ai/cmux#37809).
+    /// upgrade (`isFirstRun` false). VoiceOver (`screenReader`) gets the card too: the sidebar card is native
+    /// AppKit, which VoiceOver presses (the WebKit card it could not, manaflow-ai/cmux#37809, is gone).
     @discardableResult
     public func begin(isFirstRun: Bool, replacedKeys: [String], screenReader: Bool = false) -> Bool {
-        guard isFirstRun, !screenReader, !skipsOnboarding, defaults.string(forKey: Self.stateKey) == nil,
-              !defaults.bool(forKey: OnboardingWindowPresenter.agentsShownKey) else { return false }
+        guard isFirstRun, !skipsOnboarding, defaults.string(forKey: Self.stateKey) == nil else { return false }
         for key in [OnboardingWindowPresenter.agentsShownKey] + replacedKeys { defaults.set(true, forKey: key) }
         defaults.set("pending", forKey: Self.stateKey)
         shows = true
@@ -62,14 +60,21 @@ public final class FirstRunSetup {
     }
 
     /// What a launch's first-run steps do: start the card now, leave them to a card that started on an earlier
-    /// launch (pending or ended: the old windows never run after it, so Bring your history's flag stays the row's),
-    /// or run the first-run windows (no card ever started).
-    public enum Route: Equatable, Sendable { case startCard, cardOwns, windows }
+    /// launch (pending or ended, so Bring your history's flag stays the row's), or nothing (an upgrade, or a
+    /// launch that skips onboarding). No onboarding window ever opens on its own (Lawrence msg 25536, "get rid of
+    /// onboarding window"): its steps live only in the sidebar's Finish setting up card.
+    public enum Route: Equatable, Sendable { case startCard, cardOwns, nothing }
 
     /// The launch's first-run route; starts the card when ``begin(isFirstRun:replacedKeys:screenReader:)`` does.
+    /// An upgrade counts the first-run steps as seen, so no later launch offers them.
     public func route(isFirstRun: Bool, replacedKeys: [String], screenReader: Bool = false) -> Route {
         if begin(isFirstRun: isFirstRun, replacedKeys: replacedKeys, screenReader: screenReader) { return .startCard }
-        return defaults.string(forKey: Self.stateKey) == nil ? .windows : .cardOwns
+        guard defaults.string(forKey: Self.stateKey) == nil else { return .cardOwns }
+        if !isFirstRun {
+            defaults.set(true, forKey: OnboardingWindowPresenter.agentsShownKey)
+            historyAnswered()
+        }
+        return .nothing
     }
 
     /// Shows the card again on a profile past its first run: only the DEBUG control method `debug.setup.card`

@@ -200,16 +200,14 @@ final class OnboardingService {
         SetupCardEnvironment(services: services)
     }
 
-    /// A first run starts Home's Set Up cmux card, which offers the agents, the chat history (when found), the
-    /// account and the command line in one place: the Agents window and the CLI toast count as shown, and
-    /// Bring your history opens from the card's row. Otherwise Agents, then Bring your history
-    /// (``OnboardingWindowPresenter/showFirstRunSteps``); never when ``AppEnvironment/skipsOnboarding``.
+    /// A first run starts the sidebar's Finish setting up card, which offers the agents, the chat history (when
+    /// found), the account and the command line in one place: the Agents window and the CLI toast count as shown,
+    /// and Bring your history opens from the card's row. No onboarding window opens on its own (Lawrence msg
+    /// 25536); an upgrade counts the first-run steps seen. Never when ``AppEnvironment/skipsOnboarding``.
     func showFirstRunSteps(isFirstRun: Bool) async {
         guard !services.environment.skipsOnboarding else { return }
         let route = setup.route(isFirstRun: isFirstRun, replacedKeys: [CLIInstallHandlers.offeredAtLaunchKey], screenReader: NSWorkspace.shared.isVoiceOverEnabled)
         if route == .startCard { DebugTimings.markLaunch("first_run.setup_card_shown") }
-        guard route == .windows else { return }
-        await presenter.showFirstRunSteps(isFirstRun: isFirstRun, source: signInHarnesses) { self.showHistoryAtFirstRun(isFirstRun: isFirstRun) }
     }
 
     func historyImportFinished() {
