@@ -12,7 +12,8 @@ side branch named ghosttykit-pin/<name> (`SAFE_PUSH_NEW_BRANCH_BASE=feat-cmux-ne
 safe-push.sh ghosttykit-pin/<name>`). The push starts cmux-next-source-archive.yml,
 which uploads the ghostty-next license tree even when its notice checks fail.
 The push must add a commit that changes one of that workflow's paths: pushing a
-commit already on feat-cmux-next (a pin that landed first) starts no run, and the
+commit already on feat-cmux-next (a pin that landed first) or on any other branch
+of the repository (the PR branch, pushed first) starts no run, and the
 workflow cannot be dispatched from feat-cmux-next. When the pin landed first,
 branch ghosttykit-pin/<name> from feat-cmux-next, commit a change to one of those
 paths (a fix to this docstring will do), push it, and run this from that commit
