@@ -1,0 +1,21 @@
+name: a-pill-verify (scratch, never lands)
+on:
+  push:
+    branches: ['scratch/a-pill-verify-*']
+jobs:
+  messageslab-tests:
+    runs-on: blacksmith-6vcpu-macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Packages/Shared
+            .xcode-version
+      - name: Swift version
+        run: swift --version
+      - name: MessagesLabHome tests (alignment, progress, neighbours)
+        run: |
+          swift test --package-path Packages/Shared/CmuxMessagesLab \
+            --filter 'HomeGroupColumnAlignmentTests|HomeTurnProgressTests|HomeGroupSenderTests|HomeRunTailTests|HomeAgentPillRowTests|HomeNoticeShimmerTests|HomeTypingGapTests|HomeGroupReplyQuoteTests|HomeAgentMessageFoldTests' 2>&1 | tail -150
+          exit ${PIPESTATUS[0]}
